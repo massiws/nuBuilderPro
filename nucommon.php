@@ -58,9 +58,15 @@ function nuDebug($t){
 
     $i = nuID();
     $d = date('Y-m-d h:i:s');
-    $s = $nuDB->prepare("Insert INTO zzzsys_debug (zzzsys_debug_id, deb_message, deb_added) VALUES (? , ?, ?)");
-    
-    $s->execute(array($i, $t, $d));
+    $setup = '';
+
+    $s = $nuDB->prepare("INSERT INTO zzzsys_debug (zzzsys_debug_id, zzzsys_debug_setup, deb_message, deb_added) VALUES (:id , :setup, :message, :added)");
+    $s->bindParam(':id', $i);
+    $s->bindParam(':setup', $setup);
+    $s->bindParam(':message', $t);
+    $s->bindParam(':added', $d);
+
+    $s->execute();
     
     if($nuDB->errorCode() !== '00000'){
         error_log($nuDB->errorCode() . ": Could not establish nuBuilder database connection");
