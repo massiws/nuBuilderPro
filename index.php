@@ -23,7 +23,6 @@ jsinclude('nuformat.js');
 jsinclude('nucommon.js');
 jsinclude('nueditform.js');
 jsinclude('nubrowseform.js');
-jsinclude('nubrowseform.js');
 
 print $GLOBALS['nuSetup']->set_css;  //-- html header
 $i = "";
@@ -50,7 +49,7 @@ print "
 
 <script>
 
-window.nu_denied = '$de';
+window.nuDenied = '$de';
 
 filepicker.setKey('$k1');
 
@@ -67,6 +66,24 @@ function nuGetHome(){
 function nuGetTitle(){ 
 	return '$t';
 }
+
+function nuHomeWarning(){
+
+	if(nuFORM.edited == '1'){
+		return 'Leave This Form Without Saving? Doing this will return you to the login screen.';
+	}
+    return 'Doing this will return you to the login screen.';
+}
+
+function nuWindowWarning(){
+
+	if(nuFORM.edited == '1'){
+		return 'Leave This Form Without Saving?';
+	}
+    return null;
+}
+
+window.onbeforeunload = nuHomeWarning;
 
 </script>
 

@@ -1,3 +1,4 @@
+window.loading = false;
 
 
 
@@ -296,16 +297,12 @@ function nuGetIframeID(){
 
 }
 
-function nuDenied(){
-
-}
-
 function nuOpenObjectForm(pThis){
 
 	if(!nuIsGA()){return;}
 
-	if(window.nu_denied != ''){                           //-- stop access to system tables
-		if(nuFORM.form_id.substring(0,2) == 'nu'){
+	if(window.nuDenied != ''){                           //-- stop access to system tables
+		if(nuIsSystem()){
 			return;
 		}
 	}
@@ -325,8 +322,8 @@ function nuOpenFormForm(pThis){
 
     if(!nuIsGA()){return;}
         
-	if(window.nu_denied != ''){                           //-- stop access to system tables
-		if(nuFORM.form_id.substring(0,2) == 'nu'){
+	if(window.nuDenied != ''){                           //-- stop access to system tables
+		if(nuIsSystem() ||  nuFORM.form_id == 'nuhome'){ //-- nuIsSystem() allows for 'nuhome' but it shouldn't be here
 			return;
 		}
 	}
@@ -657,6 +654,25 @@ function nuGoToForm(i, ask){
 }
 
 
+function nuReloadForm(i, ask){
+
+	nuFORM.call_type    = 'geteditform';
+	
+    if(nuFORM.edited == '1'){
+        
+		if(!confirm("Leave This Form Without Saving?")){
+			return;
+		}
+        
+    }
+
+    var b         = window.nuSession.reloadBreadCrumb(i);
+    
+    nuBuildForm(b);
+	
+}
+
+
 
 function nuErrorMessage(e, remove){
 
@@ -791,6 +807,7 @@ function nuSaveForm(sync,operation){                                            
 		}
 	}
 
+	window.nuPoll = false;                         //-- stop polling
 	nuFORM.form_data    = nuGetData();
 	var isLookup = true;
 	if(typeof(window.nuSession.breadCrumb[0].lookup) == 'undefined') {
@@ -849,6 +866,9 @@ function nuSaveForm(sync,operation){                                            
 			if(window.opener!=null){
 				window.opener.window.nuGoToForm()
 			}
+
+            nuFORM.cloned = 0;
+			
 	})
 	.fail(function(xhr, err) {
 	   	alert(nuTranslate(nuFormatAjaxErrorMessage(xhr,err)));
@@ -924,20 +944,23 @@ function nuRunPHP(pCode, id){
 		url      : "nuapi.php",
 		type     : "POST",
 		data     : {nuWindow : P},
-                async    : false,
-                success  : function(data) {
-                    var obj          = $.parseJSON(data.DATA);
-                    var phpUrl       = 'nurunphp.php?i='+obj.id;
-                    
-                    if(obj.iframe == 0){
-                        window.open(phpUrl);
-                    }else{
-                        setTimeout( function() { $('#'+id).attr('src',phpUrl); },0);
-						
-                    }
-                    
-                },
+        async    : false,
+        success  : function(data) {
+				
+				var obj          = $.parseJSON(data.DATA);
+				var phpUrl       = 'nurunphp.php?i='+obj.id;
+				
+				if(obj.iframe == 0){
+					window.open(phpUrl);
+				}else{
+					setTimeout( function() { $('#'+id).attr('src',phpUrl); },0);
+					
+				}
+				
+			},
+			
 		dataType : "json"
+		
 		}).done(function(data){
 
 			if(nuErrorMessage(data.ERRORS)){return;}
@@ -1062,16 +1085,13 @@ function nuValidatePHP(code){
 }
 
 
-
-var loading=false;
-
 function nuBuildForm(w){
 
 	window.nuFORM = w;
     
 	if(w.call_type == 'geteditform' || w.call_type == 'cloneform'){      //-- get information and then build edit form
-        if(loading == false) {
-            loading = true;
+        if(window.loading == false) {
+            window.loading = true;
             var request = $.ajax({
                 url      : "nuapi.php",
                 type     : "POST",
@@ -1079,7 +1099,7 @@ function nuBuildForm(w){
                 dataType : "json",
                 async    : false
                 }).done(function(data){
-                    loading = false;
+                    window.loading = false;
                     if(nuErrorMessage(data.ERRORS, false)){nuRemoveModal();return;}
 
                     var obj          = $.parseJSON(data.DATA);
@@ -1099,15 +1119,15 @@ function nuBuildForm(w){
             
         w.search_columns = nuBuildSearchColumnString();                     //-- list of searchable Columns
         
-        if(loading == false) {
-            loading = true;
+        if(window.loading == false) {
+            window.loading = true;
             var request = $.ajax({
                 url      : "nuapi.php",
                 type     : "POST",
                 data     : {nuWindow : w},
                 dataType : "json"
                 }).done(function(data){
-                    loading = false;
+                    window.loading = false;
                     if(nuErrorMessage(data.ERRORS, false)){return;}
 
                     var obj          = $.parseJSON(data.DATA);
@@ -1193,12 +1213,16 @@ function nuLookupID(pThis){  //-- get lookup from id
 			$('#'+obj.prefix+'description'+obj.lookup_id).val(obj.description)
 
 			$.each( obj.lookup_other_fields, function(i, n){
-				$('#'+ obj.prefix + i).val(n)
-			});
+                    //-- begin added by br 12/02/2014: checks the type of the object and if it is a textbox remove all new line characters
+                    if( $('#'+obj.prefix + i).attr('data-nuobject-type') == 'text' ) {
+                        n = n.replace(/\n/g,' ');
+                    }
+                    //-- end added by br
+                    $('#'+ obj.prefix + i).val(n);
+            });
 			
             eval(obj.javascript);
-	});
-
+        });
 }
 
 
@@ -1251,6 +1275,15 @@ function nuLookupCode(pThis){  //-- get lookup from code
 				$('#'+obj.prefix+'code'       +obj.lookup_id).val(obj.code)
 				$('#'+obj.prefix+'description'+obj.lookup_id).val(obj.description)
                                 $.each( obj.lookup_other_fields, function(i, n){
+								
+									if(n === null){//-- added by sc 25/02/2014
+										n = '';
+									}
+                                    //-- begin added by br 12/02/2014: checks the type of the object and if it is a textbox remove all new line characters
+                                    if( $('#'+obj.prefix + i).attr('data-nuobject-type') == 'text' ) {
+                                        n = n.replace(/\n/g,' ');
+                                    }
+                                    //--end added by br
                                     $('#'+ obj.prefix + i).val(n)
                                 });
                 if( prev !== pThis.value) {     //--Ben: added to prevent javascript running multiple times over the same value.
@@ -1270,23 +1303,41 @@ function nuLookupCode(pThis){  //-- get lookup from code
 
 function nuAutocomplete(e) {
 
-        var w        = new nuWindow();
-        w.call_type  = 'autocomplete';
-        w.title      = '';
-        w.tip        = '';
-        w.lookup_id  = $(e).attr('data-id');
-        w.prefix     = $(e).attr('data-prefix');
-        w.object_id  = $(e).attr('data-nuobject');
-		w.form_id	 = $(e).attr('data-form');
-
         $(e).autocomplete({
             minLength: 2,
             autoFocus: false,
             delay: 300,
 
             source: function( request, response ) {
-                w.record_id = request.term;
 
+				//-- added by sc 2014-02-10
+
+				var w        = new nuWindow();
+				w.call_type  = 'autocomplete';
+				w.title      = '';
+				w.tip        = '';
+				w.lookup_id  = $(e).attr('data-id');
+				w.prefix     = $(e).attr('data-prefix');
+				w.object_id  = $(e).attr('data-nuobject');
+				w.form_id	 = $(e).attr('data-form');
+
+				nuGetData('create hash variables');                                 //-- set currrent Form's values as hash variables (nuFORM properties)
+
+				var alreadyDefined   = Array();
+
+				for (var key in w){
+					alreadyDefined.push(key);
+				}
+
+				for (var key in nuFORM){
+					if(alreadyDefined.indexOf(key) == -1){
+						w[key] = nuFORM[key];                                   //-- add values from parent values (so they can be used as hash variables)
+					}
+				}
+						
+				//-- end added by sc			
+							
+                w.record_id = request.term;
                  $.ajax({
                     url      : "nuapi.php",
                     type     : "POST",
@@ -1303,14 +1354,14 @@ function nuAutocomplete(e) {
 
             },
             select: function( event, ui ) {
+			
                 event.preventDefault();
                 if( ui.item !== null ) {
                     $(this).val(ui.item.value);
 
                 }
                 nuLookupCode(this);
-                //$(this).val(ui.item.value.split("-")[0])
-                //return false;
+				
             },
             change: function( event, ui ) {     
 
@@ -1406,7 +1457,8 @@ function nuMoveObject(id, top, left){
     $('#' + t.id).append($('#tr_'+id));
 
     if(nuIsGA()){
-        $('#title_' + id).hover(
+
+		$('#title_' + id).hover(
                 function (){
                         if(nuIsMoveable()){
                             $('#' + this.id).css('color', 'red');
@@ -1444,9 +1496,9 @@ function nuMoveObject(id, top, left){
 
 function nuIsGA(){
 
-	if(window.nu_denied != ''){
+	if(window.nuDenied != ''){
 	
-		if(nuFORM.form_id.substring(0,2) == 'nu'){
+		if(nuIsSystem()){
 			return false;                                    //-- stop access to system tables
 		}else{
 			return window.nu_user_name == 'globeadmin';
@@ -1460,6 +1512,13 @@ function nuIsGA(){
 }
     
 
+function nuIsSystem(){
+
+	return nuFORM.form_id.substring(0,2) == 'nu' && nuFORM.form_id != 'nuhome';
+	
+}	
+	
+	
 function nuIsMoveable(){
     
     return window.nuMoveable;
@@ -1555,7 +1614,7 @@ function nuInsideSubform(p) {
 
 function nuEmailPDF(pCode, pEmailTo, pAction, pSubject, pMessage, pCallType, pFileName) {
     if (typeof pAction == 'undefined' || pAction == ''){nuEmail(pCode, '', pEmailTo, pSubject, pMessage, pFileName);}  //-- If pAction is defined, PHP Code
-    else {nuEmail('', pCode, pEmailTo, pSubject, pMessage, pFileName);}
+    else {nuEmail('', pAction, pEmailTo, pSubject, pMessage, pFileName);}
 }
    
 
@@ -1651,3 +1710,71 @@ function nuTimeStamp(value){
 	}
 
 }
+
+
+function nuObjectColors(o){
+
+    return 'nu_' + o;
+    
+}
+
+
+function nuFieldTitle(f, l){                   //-- formats f ('cus_street_name' becomes 'Street Name' if other strings in l start with cus)
+
+	var t = Array();
+
+	for(var i = 0 ; i < l.length ; i ++){
+	
+		if(f != l[i] && f.split('_').length > 1 && f.split('_')[0] == l[i].split('_')[0]){
+		
+			for(var s = 1 ; s < f.split('_').length ; s ++){
+			
+				t.push(f.split('_')[s].charAt(0).toUpperCase() + f.split('_')[s].slice(1));
+				
+			}
+			
+			return t.join(' ');
+			
+		}
+		
+	}
+
+	for(var s = 0 ; s < f.split('_').length ; s ++){
+	
+		t.push(f.split('_')[s].charAt(0).toUpperCase() + f.split('_')[s].slice(1));
+		
+	}
+	
+	return t.join(' ');
+		
+}
+
+function nuPollingForUpdateCall(){
+
+	if(window.nuPoll != true){return;}
+
+	setInterval(function(){var b=0;},10000);
+	var w            = new nuCopyJSObject(nuFORM);
+	w.call_type      = 'check_edit';
+
+	var request      = $.ajax({
+	
+		url      : "nuapi.php",
+		type     : "POST",
+		data     : {nuWindow : w},
+		timeout  : 10000,
+		dataType : "json",
+		}).done(function(data){
+			var obj  = $.parseJSON(data.DATA);
+
+			if(obj.user == ''){
+				nuPollingForUpdateCall();
+			}else{
+				$('#nuRefreshLogo').attr('src' , 'nurefresh_red.png');
+				$('#nuRefreshLogo').attr('title' , 'Changed by ' + obj.user);
+			}
+
+	});
+
+}
+
