@@ -1,6 +1,6 @@
 <?php
 
-require_once('config.php'); 
+require_once('config.php');
 
 session_start();
 
@@ -9,7 +9,7 @@ $_SESSION['DBName']                 = $nuConfigDBName;
 $_SESSION['DBUser']                 = $nuConfigDBUser;
 $_SESSION['DBPassword']             = $nuConfigDBPassword;
 $_SESSION['DBGlobeadminPassword']   = $nuConfigDBGlobeadminPassword;
-$_SESSION['title']                  = $nuConfigtitle; 
+$_SESSION['title']                  = $nuConfigtitle;
 
 require_once('nudatabase.php');
 
@@ -47,8 +47,8 @@ function nuClientTimeZone(){
     $offset         = sprintf('%+d:%02d', $hrs*$sgn, $mins);
 
     // set timezone setting for MYSQL
-    nuRunQuery("SET time_zone = '$offset'");       
- 
+    nuRunQuery("SET time_zone = '$offset'");
+
 }
 
 
@@ -58,16 +58,10 @@ function nuDebug($t){
 
     $i = nuID();
     $d = date('Y-m-d h:i:s');
-    $setup = '';
+    $s = $nuDB->prepare("INSERT INTO zzzsys_debug (zzzsys_debug_id, deb_message, deb_added) VALUES (? , ?, ?)");
 
-    $s = $nuDB->prepare("INSERT INTO zzzsys_debug (zzzsys_debug_id, zzzsys_debug_setup, deb_message, deb_added) VALUES (:id , :setup, :message, :added)");
-    $s->bindParam(':id', $i);
-    $s->bindParam(':setup', $setup);
-    $s->bindParam(':message', $t);
-    $s->bindParam(':added', $d);
+    $s->execute(array($i, $t, $d));
 
-    $s->execute();
-    
     if($nuDB->errorCode() !== '00000'){
         error_log($nuDB->errorCode() . ": Could not establish nuBuilder database connection");
     }
@@ -80,7 +74,7 @@ function jsinclude($pfile){
 
 	$timestamp = date("YmdHis", filemtime($pfile));                                         //-- Add timestamp so javascript changes are effective immediately
 	print "<script src='$pfile?ts=$timestamp' type='text/javascript'></script>\n";
-    
+
 }
 
 
@@ -89,14 +83,14 @@ function cssinclude($pfile){
 
 	$timestamp = date("YmdHis", filemtime($pfile));                                         //-- Add timestamp so javascript changes are effective immediately
 	print "<link rel='stylesheet' href='$pfile?ts=$timestamp' />\n";
-    
+
 }
 
 
 function nuTT(){
 
 	return '___nu'.uniqid('1').'___';                                                         //--create a unique name for a Temp Table
-    
+
 }
 
 
@@ -106,7 +100,7 @@ function nuRunPHP($c){
     $t = nuRunQuery($s, array($c));
     $r = db_fetch_object($t);
     $e = nuReplaceHashes($r->slp_php, $GLOBALS['latest_hashData']);
-    
+
     eval($e);
 
 }
@@ -136,7 +130,7 @@ function hex2rgb($hexOrColor) {
 function ColorToHex($pColor){
 
     $vColor    = strtoupper($pColor);
-   
+
     if($vColor =='ALICEBLUE'){return 'F0F8FF';}
     if($vColor == 'ANTIQUEWHITE'){return 'FAEBD7';}
     if($vColor == 'AQUA'){return '00FFFF';}
@@ -303,7 +297,7 @@ function nuGetFormProperties($f){
 	$t                      = nuRunQuery("SELECT * FROM zzzsys_form WHERE zzzsys_form_id = ?",array($f));
     if(nuErrorFound()){return;}
 	$r                      = db_fetch_array($t);
-	
+
 	$GLOBALS['currentForm'] = $r;
 
 }
@@ -317,25 +311,25 @@ function nuF($field){    //-- fields from current Form
 
 
 function nuSessionArray($i){
-	
+
 	$A                        = array();
 	$s                        = "
-		SELECT 
-		zzzsys_user_id         AS user_id, 
-		sug_code               AS user_group, 
-		sal_code               AS access_level, 
-		zzzsys_access_level_id AS access_level_id, 
+		SELECT
+		zzzsys_user_id         AS user_id,
+		sug_code               AS user_group,
+		sal_code               AS access_level,
+		zzzsys_access_level_id AS access_level_id,
 		sus_name               AS user_name,
 		sus_email              AS email,
 		sal_zzzsys_form_id     AS form_id
-		FROM zzzsys_session 
+		FROM zzzsys_session
 		INNER JOIN zzzsys_user         ON sss_zzzsys_user_id         = zzzsys_user_id
 		INNER JOIN zzzsys_user_group   ON sus_zzzsys_user_group_id   = zzzsys_user_group_id
 		INNER JOIN zzzsys_access_level ON sug_zzzsys_access_level_id = zzzsys_access_level_id
 		WHERE zzzsys_session_id = ?
 
 	";
-	
+
 	$t                        = nuRunQuery($s, array($i));
 
 	if($t->rowCount() == 0){
@@ -358,14 +352,14 @@ function nuSessionArray($i){
 		$A['nu_smtp_to_name']     = $r->user_name;
         nuV('nu_access_level_id', $r->access_level_id);
 	}
-        
+
         nuV('nu_user_id',      $A['nu_user_id']);
         nuV('nu_user_group',   $A['nu_user_group']);
         nuV('nu_user_name',    $A['nu_user_name']);
         nuV('nu_index_id',     $A['nu_index_id']);
-	
+
 	return $A;
-	
+
 }
 
 
@@ -380,28 +374,28 @@ function nuHashData(){
     $h['nu_edited_record']     = nuV('edited');
     $h['nu_cloned_record']     = nuV('cloned');
     $h['nu_new_record']        = nuV('record_id') == '-1' ? '1' : '0';
-	
-	
-	
-	for($f = 0 ; $f < count($form_data['data']) ; $f++){	
-	
+
+
+
+	for($f = 0 ; $f < count($form_data['data']) ; $f++){
+
         if(array_key_exists('records',$form_data['data'][$f])) {
             for($r = 0 ; $r < count($form_data['data'][$f]['records']) ; $r++){
-			
+
 				if(isset($form_data['data'][$f]['records'][$r]['fields'])){
-            
+
 					for($i = 0 ; $i < count($form_data['data'][$f]['records'][$r]['fields']) ; $i++){
-					
+
 						$fd                                     = $form_data['data'][$f]['records'][$r]['fields'][$i];
-						
+
 						if($form_data['data'][$f]['subform'] == ''){
 							$prefix                             = '';
 						}else{
 							$prefix                             = $form_data['data'][$f]['subform'] . substr('000'.$r, -4);
 						}
-						
+
 						$h[$prefix.$fd['field']]                = $fd['value'];
-						
+
 					}
 
 					if($form_data['data'][$f]['subform'] != ''){
@@ -412,28 +406,28 @@ function nuHashData(){
 						}
 					}
 				}
-        
+
             }
 		}
-        
+
 	}
 
 	$v                             = nuV();
 
     foreach($v as $key => $value){                        //-- add nuV() to form_data
-    
+
 		$used                      = false;
-		
+
 		if(isset($_POST['nuWindow']['form_data'])){
 			for($i = 0 ; $i < count($_POST['nuWindow']['form_data']['data'][0]['records'][0]['fields']) ; $i++){               //-- reapply hash variables from calling edit page (incase over written by $_POST['nuWindow'])
 
 				if($_POST['nuWindow']['form_data']['data'][0]['records'][0]['fields'][$i]['field'] == $key){
-				
+
 					$used              = true;
 					break;
-					
+
 				}
-				
+
 			}
 		}
 
@@ -442,15 +436,15 @@ function nuHashData(){
 			$add['field']      = $key;
 			$add['value']      = $value;
 			$add['save']       = '0';
-			
+
 			$_POST['nuWindow']['form_data']['data'][0]['records'][0]['fields'][] = $add;
-			
+
 		}
-		
+
     }
-	
+
 	$setup                         = $GLOBALS['nuSetup'];                                                                          //-- Read SMTP AUTH Settings from zzsys_setup table
-	
+
 	$h['nu_denied']                = $setup->set_denied;                      //-- hide ids like .. eg. nu%
 
 	$h['nu_smtp_username']         = $setup->set_smtp_username;
@@ -465,18 +459,18 @@ function nuHashData(){
     $sessionData                   = nuSessionArray(nuV('session_id'));       //-- user and access info
 
     foreach($_POST['nuWindow'] as $key => $value){                            //-- add current hash variables
-    
+
         $h[$key]                   = $value;
-        
+
     }
-    
+
 
 	if(isset($form_data['data'][0]['records'][0]['fields'])){
 		for($i = 0 ; $i < count($form_data['data'][0]['records'][0]['fields']) ; $i++){               //-- reapply hash variables from calling edit page (incase over written by $_POST['nuWindow'])
-		
+
 			$fd                       = $form_data['data'][0]['records'][0]['fields'][$i];
 			$h[$fd['field']]           = $fd['value'];
-			
+
 		}
 	}
     return array_merge($recordData, $sessionData, $h);
@@ -491,49 +485,49 @@ function nuRecordArray($hashData){
     $ignore[]              = 'slp_php';
     $noResult              = true;
     $A                     = array();
-	
+
 	$t                     = nuRunQuery("SELECT * FROM zzzsys_form WHERE zzzsys_form_id = ? ", array(nuV('form_id')));
 	$r                     = db_fetch_object($t);
 
 	if(nuV('call_type') != 'geteditform'){
-	
+
 		$bb                = nuReplaceHashes($r->sfo_custom_code_run_before_browse, $hashData);
 		eval($bb);
-	
+
 	}
-	
+
 	$table                 = nuReplaceHashes($r->sfo_table, $hashData);
 	$T                     = nuRunQuery("SELECT * FROM $table WHERE $r->sfo_primary_key = ? ", array(nuV('record_id')));
 	$R                     = db_fetch_array($T);
-   
+
 	if (is_array($R)) {
 	foreach($R as $key => $value){                                           //-- add current hash variables
 
 			$noResult          = false;
-		
+
 			if(!is_numeric($key)){
-			
+
 				if(!in_array($key, $ignore)){
 					$A[$key]   = $value;
 					}
 			}
 	  }
-	}	
-	
-	if($noResult){                                                           //-- set fields to blank values
-		
-		$flds              = db_columns($table);
-		
-		for($i = 0 ; $i < count($flds) ; $i ++){
-			
-			$A[$flds[$i]]  = '';
-			
-		}
-		
 	}
-        
+
+	if($noResult){                                                           //-- set fields to blank values
+
+		$flds              = db_columns($table);
+
+		for($i = 0 ; $i < count($flds) ; $i ++){
+
+			$A[$flds[$i]]  = '';
+
+		}
+
+	}
+
 	nuRunQuery("DROP TABLE IF EXISTS ".$hashData['TABLE_ID']);
-		
+
 	return $A;
 
 }
@@ -542,16 +536,16 @@ function nuRecordArray($hashData){
 function nuReplaceHashes($str, $arr){
 
 	while(list($key, $value) = each($arr)){
-	
+
 		if(!is_array($value) and $str != '' and $key != ''){
 			$newValue = addslashes($value);
 			$str = str_replace('#'.$key.'#', $newValue, $str);
 		}
-		
+
 	}
 
     $GLOBALS['latest_hashData'] = $arr;
-    
+
 	return $str;
 }
 
@@ -570,7 +564,7 @@ function nuTranslate($phrase){
 	}
 
 }
-			
+
 
 function nuTextFormats(){
 
@@ -881,21 +875,21 @@ class nuSqlString{
         $groupBy_string   = stristr($sql, ' group by ');
         $having_string    = stristr($sql, ' having ');
         $orderBy_string   = stristr($sql, ' order by ');
-        
+
         $from             = str_replace($where_string,   '', $from_string);
         $from             = str_replace($groupBy_string, '', $from);
         $from             = str_replace($having_string,  '', $from);
         $from             = str_replace($orderBy_string, '', $from);
-        
+
         $where            = str_replace($groupBy_string, '', $where_string);
         $where            = str_replace($having_string,  '', $where);
         $where            = str_replace($orderBy_string, '', $where);
-        
+
         $groupBy          = str_replace($having_string,  '', $groupBy_string);
         $groupBy          = str_replace($orderBy_string, '', $groupBy);
-        
+
         $having           = str_replace($orderBy_string, '', $having_string);
-        
+
         $orderBy          = $orderBy_string;
         $this->from       = $from;
         $this->where      = $where;
@@ -936,7 +930,7 @@ class nuSqlString{
 
     }
 
-    
+
     public function getTableName(){
 
     	return trim(substr($this->from, 5));
@@ -945,46 +939,46 @@ class nuSqlString{
 
     public function setFrom($pString){
 
-    	$this->from          = $pString; 
+    	$this->from          = $pString;
     	$this->buildSQL();
 
     }
 
     public function setWhere($pString){
 
-    	$this->where         = $pString; 
+    	$this->where         = $pString;
     	$this->buildSQL();
 
     }
 
     public function getWhere(){
-    	return $this->where; 
+    	return $this->where;
     }
 
     public function setGroupBy($pString){
 
-    	$this->groupBy       = $pString; 
+    	$this->groupBy       = $pString;
     	$this->buildSQL();
 
     }
 
     public function setHaving($pString){
 
-    	$this->having        = $pString; 
+    	$this->having        = $pString;
     	$this->buildSQL();
 
     }
 
     public function setOrderBy($pString){
 
-    	$this->orderBy       = $pString; 
+    	$this->orderBy       = $pString;
     	$this->buildSQL();
 
     }
 
     public function addField($pString){
 
-		$this->fields[]      = $pString; 
+		$this->fields[]      = $pString;
     	$this->buildSQL();
 
     }
@@ -996,7 +990,7 @@ class nuSqlString{
     }
 
     private function buildSQL(){
-    	$this->SQL           = 'SELECT '; 
+    	$this->SQL           = 'SELECT ';
     	$this->SQL           = $this->SQL . ' ' . implode(',', $this->fields);
     	$this->SQL           = $this->SQL . ' ' . $this->from;
     	$this->SQL           = $this->SQL . ' ' . $this->where;
@@ -1013,14 +1007,14 @@ function nuV($pElement = NULL, $pValue = NULL){
         static $variables              = NULL;
 
         if ($variables === NULL && array_key_exists('nuWindow', $_POST)){
-            
+
             $variables                 = $_POST['nuWindow'];
             $t                         = nuRunQuery("SELECT * FROM zzzsys_setup WHERE zzzsys_setup_id = 1");
             if(nuErrorFound()){return;}
             $r                         = db_fetch_object($t);
             $variables['set_language'] = $r->set_language;
         }
-        
+
         if ($pValue    !== NULL){
             $variables[$pElement]      = $pValue;
         }
@@ -1028,13 +1022,13 @@ function nuV($pElement = NULL, $pValue = NULL){
         if($pElement == NULL){
             return $variables;
         }else if(gettype($variables) == "array" && array_key_exists($pElement, $variables)){
-		
+
             if($variables[$pElement] != 'null') {
                 return $variables[$pElement];
             } else {
                 return '';
             }
-			
+
         }else{
             return NULL;
         }
@@ -1048,13 +1042,13 @@ function nuBuildHashData($J, $T){
     $ignore[]           = 'sre_layout';
     $ignore[]           = 'form_data';
     $ignore[]           = 'slp_php';
-    
+
     foreach($J as $key => $v){                                           //-- add current hash variables
-        
+
         if(!in_array($key, $ignore)){
             $hash['' . $key . '']     = $v;
         }
-        
+
     }
 
     $d                  = new DateTime();
@@ -1071,70 +1065,70 @@ function nuBuildHashData($J, $T){
 
     $hash['TABLE_ID']         = $T;
 
-    
+
     return $hash;
 
 }
 
 function nuErrorFound(){
-    
+
     if(isset($GLOBALS['ERRORS'])){
         return count($GLOBALS['ERRORS']) > 0;
     }else{
         return false;
     }
-    
+
 }
 
 function nuUploadCodesToMessage($code) {
-        switch ($code) { 
-            case UPLOAD_ERR_INI_SIZE: 
-                $message = "The uploaded file exceeds the upload_max_filesize directive in php.ini"; 
-                break; 
-            case UPLOAD_ERR_FORM_SIZE: 
-                $message = "The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in the HTML form"; 
-                break; 
-            case UPLOAD_ERR_PARTIAL: 
-                $message = "The uploaded file was only partially uploaded"; 
-                break; 
-            case UPLOAD_ERR_NO_FILE: 
-                $message = "No file was uploaded"; 
-                break; 
-            case UPLOAD_ERR_NO_TMP_DIR: 
-                $message = "Missing a temporary folder"; 
-                break; 
-            case UPLOAD_ERR_CANT_WRITE: 
-                $message = "Failed to write file to disk"; 
-                break; 
-            case UPLOAD_ERR_EXTENSION: 
-                $message = "File upload stopped by extension"; 
-                break; 
-            default: 
-                $message = "Unknown upload error"; 
-                break; 
-        } 
-        return $message; 
-} 
+        switch ($code) {
+            case UPLOAD_ERR_INI_SIZE:
+                $message = "The uploaded file exceeds the upload_max_filesize directive in php.ini";
+                break;
+            case UPLOAD_ERR_FORM_SIZE:
+                $message = "The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in the HTML form";
+                break;
+            case UPLOAD_ERR_PARTIAL:
+                $message = "The uploaded file was only partially uploaded";
+                break;
+            case UPLOAD_ERR_NO_FILE:
+                $message = "No file was uploaded";
+                break;
+            case UPLOAD_ERR_NO_TMP_DIR:
+                $message = "Missing a temporary folder";
+                break;
+            case UPLOAD_ERR_CANT_WRITE:
+                $message = "Failed to write file to disk";
+                break;
+            case UPLOAD_ERR_EXTENSION:
+                $message = "File upload stopped by extension";
+                break;
+            default:
+                $message = "Unknown upload error";
+                break;
+        }
+        return $message;
+}
 
 
 
 function nuPDForPHPParameters($hashData, $validate = '', $saveToFile = false) {
 
     $hash               = array();
-	
+
 	if($validate == ''){                                                     //-- (runphp or printpdf)
 		$theID          = $hashData['parent_record_id'];
 	}else{                                                                   //-- just validate user access
 		nuV('call_type', $validate);
 		$theID          = nuV('code');
 	}
-    
+
     foreach ($hashData as $key => $val) {                                    //-- add current hash variables
         $hash[$key]     = $val;
     }
 
     if (nuV('call_type') == 'runphp') {                                      //-- add php record to hash variables
-    
+
         $s              = "SELECT * FROM  zzzsys_php WHERE slp_code = '$theID'";
         $t              = nuRunQuery($s);
         if (nuErrorFound()) {
@@ -1153,10 +1147,10 @@ function nuPDForPHPParameters($hashData, $validate = '', $saveToFile = false) {
     }
 
     if (nuV('call_type') == 'printpdf') {                                    //-- add report record to hash variables
-        
+
         $s              = "SELECT * FROM  zzzsys_report INNER JOIN zzzsys_php ON sre_zzzsys_php_id = zzzsys_php_id WHERE sre_code = '$theID'";
         $t              = nuRunQuery($s);
-        
+
         if (nuErrorFound()) {
             return;
         }
@@ -1174,53 +1168,53 @@ function nuPDForPHPParameters($hashData, $validate = '', $saveToFile = false) {
     }
 
 	if($validate != '' and $saveToFile == false){return;}                                              //-- just check
-	
+
     $i                  = nuID();
-    $hash['sfi_blob']   = null;  
+    $hash['sfi_blob']   = null;
     $j                  = json_encode($hash);
     $d                  = date('Y-m-d h:i:s');
 
     nuRunQuery("INSERT INTO zzzsys_debug (zzzsys_debug_id, deb_message, deb_added) VALUES(?, ?, ?)", array($i, $j, $d));
-    
+
     if (nuErrorFound()) {
         return;
     }
-	
+
     if (nuV('call_type') == 'printpdf' and nuV('filename') != '' ) {                                    //-- save pdf to server
 
 		return nuEmailGetReportFile($i);
-		
+
 	}
 
 
     return $i;
-    
+
 }
 
 
 function nuGetLanguage(){
 
 
-   	$setup     = $GLOBALS['nuSetup'];                                      //-- Get language from zzsys_setup table	
+   	$setup     = $GLOBALS['nuSetup'];                                      //-- Get language from zzsys_setup table
     $j         = "function nuTranslate(p){\n\n";
     $t         = nuRunQuery("SELECT * FROM zzzsys_translate WHERE trl_language = ? ", array($setup->set_language));
-    
+
     while($r   = db_fetch_object($t)){
         $j    .= "   if(p == '" . str_replace("'", "\'", $r->trl_english) . "'){return '" . str_replace("'", "\'", $r->trl_translation) . "';}\n";
     }
-    
+
     return $j .= "\n   return p;\n}\n\n";
-    
+
 }
 
 
 
 function nuTime($message){
-    
+
     if(!isset($GLOBALS['nu_time'])){
         $GLOBALS['nu_time'] = array();
     }
-    
+
     $date                   = new DateTime();
     $GLOBALS['nu_time'][]   = $message . ' - ' . $date->getTimestamp();
 
@@ -1228,7 +1222,7 @@ function nuTime($message){
 
 
 function nuCreateFile($c){
-    
+
     $t    = nuRunQuery("SELECT * FROM zzzsys_file WHERE sfi_code = ? ", array($c));
     $r    = db_fetch_object($t);
     $x    = explode('/',$r->sfi_type);
@@ -1237,7 +1231,7 @@ function nuCreateFile($c){
     $h    = fopen($file , 'w');
     fwrite($h, $r->sfi_blob);
     fclose($h);
-    
+
     return $file;
 }
 
@@ -1245,20 +1239,20 @@ function nuCreateFile($c){
 function nuEmailGetReportFile($request, $request_url = null) {
 
 	if ($request_url == null) {
-	
+
 		if (!empty($_SERVER['HTTPS'])) {
 			$request_url      = "https://";
 		} else {
-			$request_url      = "http://";	
+			$request_url      = "http://";
 		}
 		$this_url             = $_SERVER["SERVER_NAME"].$_SERVER["REQUEST_URI"];
 		$this_url             = explode("/",$this_url);
 		for ($x=0; $x<count($this_url)-1;$x++) {
 			$request_url     .= $this_url[$x]."/";
 		}
-		
+
 		$request_url         .= "nurunpdf.php?i=".$request;
-		
+
 	}
 
 	$urlHandle                = fopen($request_url, "rb");
@@ -1269,7 +1263,7 @@ function nuEmailGetReportFile($request, $request_url = null) {
 	$handle                   = fopen($tmp_file, "w");
 	fwrite($handle, $contents);
 	fclose($handle);
-nuDebug($tmp_file);	
+nuDebug($tmp_file);
 	return $tmp_file;
 }
 
@@ -1277,13 +1271,13 @@ function nuNextNumberTables(){
 
 //-- (test 1) table has only 2 fields
     $a = array();                                        //-- array of tables that meet the specs for generating an incremented file
-    $d = $_SESSION['DBName']; 
+    $d = $_SESSION['DBName'];
     $s = "
-        SELECT 
-            table_name, 
-            count(table_name) as CT, 
+        SELECT
+            table_name,
+            count(table_name) as CT,
             column_name
-        FROM information_schema.columns 
+        FROM information_schema.columns
         WHERE table_schema = '$d'
         GROUP BY table_name
         HAVING CT = 2
@@ -1293,11 +1287,11 @@ function nuNextNumberTables(){
 
     while($r = db_fetch_row($t)){
         $s  = "
-                SELECT COLUMN_KEY 
-                FROM INFORMATION_SCHEMA.COLUMNS 
-                WHERE TABLE_SCHEMA = '$d' 
-                AND TABLE_NAME     = '$r[0]' 
-                AND COLUMN_NAME    = '$r[2]' 
+                SELECT COLUMN_KEY
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = '$d'
+                AND TABLE_NAME     = '$r[0]'
+                AND COLUMN_NAME    = '$r[2]'
                 AND EXTRA          LIKE '%auto_increment%'
             ";
         $ct = nuRunQuery($s);
@@ -1307,10 +1301,10 @@ function nuNextNumberTables(){
 
             $s  = "
                 SELECT CONCAT(DATA_TYPE, CHARACTER_MAXIMUM_LENGTH)
-                FROM INFORMATION_SCHEMA.COLUMNS 
-                WHERE TABLE_SCHEMA = '$d' 
-                AND TABLE_NAME     = '$r[0]' 
-                AND COLUMN_NAME    = '$r[2]' 
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = '$d'
+                AND TABLE_NAME     = '$r[0]'
+                AND COLUMN_NAME    = '$r[2]'
                 AND DATA_TYPE      = 'varchar'
                 ";
             $ct = nuRunQuery($s);
@@ -1320,13 +1314,13 @@ function nuNextNumberTables(){
 
                 $a[]  = $r[0];
             }
-        
+
         }
- 
+
     }
 
     return $a;
-    
+
 }
 
 function nuNextNumber($t){
@@ -1335,11 +1329,11 @@ function nuNextNumber($t){
     $u     = nuID();
     $s     = "INSERT INTO `$t` SET `$l[1]` = ? ";                       //-- insert to create next number
     $i     = nuRunQuery($s, array($u), true);
-    
+
     $s     = "SELECT `$l[0]` FROM `$t` WHERE `$l[1]` = ? ";              //-- get next number
     $t     = nuRunQuery($s, array($u));
     $r     = db_fetch_row($t);
-    
+
     return $r[0];                                                        //-- return next number
 
 }
@@ -1348,9 +1342,9 @@ function nuClearDebug(){                                                 //-- re
 
     $twoDays = mktime(0, 0, 0, date("m")  , date("d") - 2, date("Y"));
     $d       = date('Y-m-d h:i:s', $twoDays);
-    
+
     nuRunQuery("DELETE FROM zzzsys_debug WHERE deb_added < ?", array($d));
-    
+
 }
 
 function nuPHPAccess($i){
@@ -1362,19 +1356,19 @@ function nuPHPAccess($i){
 	$s = "SELECT count(*) FROM zzzsys_php
 		   WHERE zzzsys_php_id = ?
 		   AND slp_nonsecure = '1'
-		  ";	
-		  
+		  ";
+
 	$t = nuRunQuery($s, array($i));
 
 	$r = db_fetch_row($t);
 
 	if($r[0] != 0){return true;}                    //-- Non Secure
-	
+
 	$s = "SELECT count(*) FROM zzzsys_access_level_php
 		   INNER JOIN zzzsys_access_level ON slp_zzzsys_access_level_id = zzzsys_access_level_id
 		   WHERE (slp_zzzsys_php_id = ?
 		   AND sal_code = ?)
-		  ";	
+		  ";
 	$t = nuRunQuery($s, array($i, $a));
 
 	$r = db_fetch_row($t);
@@ -1394,12 +1388,12 @@ function nuReportAccess($i){
 		   INNER JOIN zzzsys_access_level ON slr_zzzsys_access_level_id = zzzsys_access_level_id
 		   WHERE slr_zzzsys_report_id = ?
 		   AND sal_code = ?
-		  ";	
+		  ";
 
 	$t = nuRunQuery($s, array($i, $a));
 
 	$r = db_fetch_row($t);
-	
+
 	return $r[0] != 0;        //-- report allowed
 
 }
@@ -1445,9 +1439,9 @@ function nuEmailValidateAddress($email) {
 			$isValid      = false;
 		}
 	}
-	
+
 	return $isValid;
-   
+
 }
 
 
@@ -1457,10 +1451,10 @@ function nuSendEmail($to, $from, $fromname, $content, $subject, $filelist) {
     $toname                                      = '';
 	$html                                        = false;
 	$wordWrap                                    = 120;
-    
+
     $errorText                                   = "";
-   	$setup                                       = $GLOBALS['nuSetup'];                                      //-- Read SMTP AUTH Settings from zzsys_setup table	
-	
+   	$setup                                       = $GLOBALS['nuSetup'];                                      //-- Read SMTP AUTH Settings from zzsys_setup table
+
 	if (!empty($setup->set_smtp_username)) 		{ $SMTPuser = trim($setup->set_smtp_username);}                        else{$errorText .= "SMTP Username not set.\n";}
 	if (!empty($setup->set_smtp_password)) 		{ $SMTPpass = trim($setup->set_smtp_password);}                        else{$errorText .= "SMTP Password not set.\n";}
 	if (!empty($setup->set_smtp_host)) 		    { $SMTPhost = trim($setup->set_smtp_host);}                            else{$errorText .= "SMTP Host not set.\n";}
@@ -1473,9 +1467,9 @@ function nuSendEmail($to, $from, $fromname, $content, $subject, $filelist) {
 
 		nuDisplayError("Unable to send SMTP Email, the following error(s) occured:\n" . $errorText);
 		return;
-        
+
 	}
-	
+
 	require_once("phpmailer/class.phpmailer.php");
 
 	try{
@@ -1492,8 +1486,8 @@ function nuSendEmail($to, $from, $fromname, $content, $subject, $filelist) {
 			$mail->Password          = $SMTPpass;
 		}
 
-		if ($receipt) { 
-			$mail->ConfirmReadingTo  = $from; 
+		if ($receipt) {
+			$mail->ConfirmReadingTo  = $from;
 		}
 
 
@@ -1503,12 +1497,12 @@ function nuSendEmail($to, $from, $fromname, $content, $subject, $filelist) {
 		$mail->From                  = $from;
 		$tonameArray                 = explode(',',$toname);
 		$toArray                     = explode(',',$to);
-	
+
 		for ($i = 0; $i < count($toArray); $i++){
 			if ($toArray[$i]) {
-				if (isset($tonameArray[$i])) { 
-					$thisToName      = $tonameArray[$i]; 
-				} else { 
+				if (isset($tonameArray[$i])) {
+					$thisToName      = $tonameArray[$i];
+				} else {
 					$thisToName      = "";
 				}
 				$mail->AddAddress($toArray[$i], $thisToName);
@@ -1521,7 +1515,7 @@ function nuSendEmail($to, $from, $fromname, $content, $subject, $filelist) {
 		foreach($filelist as $filename=>$filesource) {
 			$mail->AddAttachment($filesource,$filename);
 		}
-		
+
 		$mail->Subject               = $subject;
 		$mail->Body                  = $content;
 
@@ -1544,7 +1538,7 @@ function nuSendEmail($to, $from, $fromname, $content, $subject, $filelist) {
 }
 
 function nuEmail($pPDForPHP, $pEmailTo, $pSubject, $pMessage, $hashData) { //-- Emails a PDF,PHP generated file or plain email (Requires hashdata of form to generate file from)
-    
+
     if($hashData == '') {
         $hashData = nuHashData();
     }
@@ -1557,7 +1551,7 @@ function nuEmail($pPDForPHP, $pEmailTo, $pSubject, $pMessage, $hashData) { //-- 
         $fromname    = $r->sus_name;
         $fromaddress = $r->sus_email;
     } else {
-    	$setup       = $GLOBALS['nuSetup'];                                                           //-- Read SMTP AUTH Settings from zzsys_setup table	
+    	$setup       = $GLOBALS['nuSetup'];                                                           //-- Read SMTP AUTH Settings from zzsys_setup table
         $fromname    = trim($setup->set_smtp_from_name);
         $fromaddress = trim($setup->set_smtp_from_address);
     }
@@ -1569,7 +1563,7 @@ function nuEmail($pPDForPHP, $pEmailTo, $pSubject, $pMessage, $hashData) { //-- 
 	$filelist                                    = array();
 
     if($hashData['nu_pdf_code'] != '') {
-    
+
         nuV('code', $pPDForPHP);
         nuV('call_type', 'printpdf');
         nuV('filename', $hashData['nu_email_file_name']);
@@ -1577,18 +1571,18 @@ function nuEmail($pPDForPHP, $pEmailTo, $pSubject, $pMessage, $hashData) { //-- 
         $hashData['parent_record_id']            = $hashData['nu_pdf_code'];
         $tmp_nu_file                             = nuPDForPHPParameters($hashData);
 		$finfo                                   = finfo_open(FILEINFO_MIME_TYPE);                     //-- check to see if the file being sent is a PDF file
-		
+
         if(finfo_file($finfo, $tmp_nu_file) != 'application/pdf') {
-		
+
 			nuDisplayError(file_get_contents($tmp_nu_file, true));
 			finfo_close($finfo);
 
 			return;
-			
+
 		}
 
     } else if($hashData['nu_php_code'] !=  '') {                                                          //-- Run PHP Code
-    
+
         $s                                       = "SELECT slp_php FROM  zzzsys_php WHERE slp_code = '$pPDForPHP'";
         $t                                       = nuRunQuery($s);
         $r                                       = db_fetch_object($t);
@@ -1596,15 +1590,15 @@ function nuEmail($pPDForPHP, $pEmailTo, $pSubject, $pMessage, $hashData) { //-- 
         $php                                     = nuReplaceHashes($r->slp_php, $hashData);
         eval($php);
         return;
-        
+
     }
 
     if($hashData['nu_pdf_code'] !=  '') {                                                              //-- File to attach, send with file
         $filelist[$hashData['nu_email_file_name']]  = $tmp_nu_file;
     }
-    
+
 	return nuSendEmail($pEmailTo, $fromaddress, $fromname, $pMessage, $pSubject, $filelist);
-	
+
 }
 
 ?>
