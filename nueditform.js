@@ -207,12 +207,12 @@ function nuSetLookupAttributes(e,c,img,d,o,i,prefix, rowPK){
 	c.setAttribute('data-parent',          o[i].f_id);
 	d.setAttribute('data-prefix',          prefix);
 	
-//	if(o[i].r_id == '-1'){
-//		e.setAttribute('data-nuedited', '1');
-//	}else{
-//		e.setAttribute('data-nuedited', '0');
-//	}
-	
+
+
+
+
+
+
 	if(o[i].read_only == '1'){
 		e.setAttribute('readonly',             true);
 		c.setAttribute('readonly',             true);
@@ -321,30 +321,47 @@ function nuSubformColumnTitles(o,i,e,objects){
                 })
 			}
 			
-			left = left + width;
+			left       = left + width;
 
 		}
 	}
+
+
+	if(left > o[i].width){
+		var delete_left = (left + 1) + 'px';
+	}else{
+		var delete_left = (o[i].width - 60) + 'px';
+	}
+
 	
 	c = document.createElement('div');              //-- create a new subform column div
 	c.setAttribute('id', 'title_delete'+o[i].field);
 	$('#' + e.id).append(c);
 	$('#' + c.id).css({ 
-        'width'                       : '40px',
-        'height'                      : (o[i].title_height) +'px',
-        'top'                         : '0px',
-        'left'                        : (o[i].width-60)+'px',
-        'position'                    : 'absolute',
-        'border-color'                : 'grey',
-        'border-width'                : '1px',
-        'border-style'                : 'solid',
-        'font-size'                   : '12px',
-        '-moz-border-top-right-radius': '5px',
-        'border-top-right-radius'     : '5px'
-    })
-	.addClass('nuUnselectedTab nuGradient')
-	.html('Delete');
 
+		'width'                       : '40px',
+		'height'                      : (o[i].title_height) +'px',
+
+		'top'                         : '0px',
+		'left'                        : delete_left,
+		'position'                    : 'absolute',
+		'border-color'                : 'grey',
+		'border-width'                : '1px',
+		'border-style'                : 'solid',
+		'font-size'                   : '12px',
+		'-moz-border-top-right-radius': '5px',
+		'border-top-right-radius'     : '5px'
+
+	})
+	.addClass('nuUnselectedTab nuGradient')
+	
+	if(o[i].deletable == 1){
+	
+		$('#' + c.id).html('Delete');
+		
+	}
+
+	return left;  //-- total width
 }
 
   
@@ -914,6 +931,7 @@ function nuRecordObjects(formType, formTop){
 		$('#' + e.id).css( 'position', 'absolute');
 		$('#' + e.id).css( 'top', '1px');
 		$('#' + e.id).css( 'left', this.left+'px');
+		$('#' + e.id).css( 'width', (Number(o[i].width) + 5)+'px');
 	}
 
 
@@ -968,9 +986,10 @@ function nuRecordObjects(formType, formTop){
 
 		$('#' + e.id).hover(
 			function (){
-                            if(nuIsMoveable()){
-				$('#' + this.id).css('color', 'red');
-                            }
+				if(nuIsMoveable()){
+					$('#' + this.id).css('color', 'red');
+
+				}
 			}, 
 			function (){
 				$('#' + this.id).css('color', '');
@@ -979,40 +998,49 @@ function nuRecordObjects(formType, formTop){
 		
 		nuObjectSize(o,e,i,true);
 		
-		e = document.createElement('div');              //-- create a new subform scrolling div
+		e          = document.createElement('div');              //-- create a new subform scrolling div
 		e.setAttribute('id', 'scroll_'+o[i].field);
 		$('#' + parent).append(e);
 		width      = parseInt(o[i].width);
 		height     = parseInt(o[i].height);
 		$('#' + e.id).css({ 
-            'width'                        :  (width-30)  +'px',
-             'height'                      : height +'px',
+
+            'width'                        : (width  - 18) + 'px',
+             'height'                      : (height - 15) + 'px',
              'top'                         : '20px',
              'left'                        : '0px',
              'position'                    : 'absolute',
              'background-color'            : '#E0E0E0',
              '-moz-border-top-left-radius' : '5px',
              'border-top-left-radius'      : '5px',
-            'box-shadow'                   : '15px 5px 5px #888888'
+            'box-shadow'                   : '5px 5px 5px #888888',
+            'overflow'                     : 'auto'
         });
-		parent  = e.id;
-		
-		nuSubformColumnTitles(o,i,e,sfObjects);
-		e = document.createElement('div');              //-- create a new object holding div
+		parent     = e.id;
+
+
+		var left   = nuSubformColumnTitles(o,i,e,sfObjects);
+		var newL   = width;
+		e          = document.createElement('div');              //-- create a new object holding div
 		e.setAttribute('id', 'objects_'+o[i].field);
 		$('#' + parent).append(e);
 		width      = parseInt(o[i].width);
 		height     = parseInt(o[i].height);
+		
+		if(newL < left){
+			newL   = left + 62;		
+		}
+		
 		$('#' + e.id).css({
-            'width'    : (o[i].width-20)+'px',
-            'height'   : (height-(o[i].title_height)) +'px',
+            'width'    : (newL - 19) +'px',
+            'height'   : (height-(o[i].title_height)-18) +'px',
             'top'      : (Number(o[i].title_height)+2)+'px',
             'left'     : '0px',
             'position' : 'absolute',
             'overflow' : 'scroll'
         });
 
-		parent  = e.id;
+		parent     = e.id;
 		var row_height  = nuGetGridRowHeight(o,i,sfObjects);
 		var row_top     = 0;
 		nuDisplayEditForm(sfObjects,sfRecords,parent,i,o);		
@@ -1259,7 +1287,7 @@ function nuDisplayEditForm(formObjects,formRecords,formParent,sfI,sfO){
 		
 		if(arguments.length != 2){
             if(sfO[sfI].deletable == '1' && sfO[sfI].read_only != '1'){
-                cb               = document.createElement('input');              //-- create delete checkbox
+                cb           = document.createElement('input');              //-- create delete checkbox
                 cb.setAttribute('id', form.prefix+'_nuDelete');
                 cb.setAttribute('type', 'checkbox');
                 if(formRecords[R][0] == '-1'){
@@ -1267,7 +1295,11 @@ function nuDisplayEditForm(formObjects,formRecords,formParent,sfI,sfO){
                 }
                 $('#' + parentOfTable).append(cb);
                 $('#' + cb.id).css( 'top', '5px');
-                $('#' + cb.id).css( 'left', (formWidth-55)+'px');
+				if(form.left > (formWidth)){
+					$('#' + cb.id).css( 'left', (form.left + 10) + 'px');
+				}else{
+					$('#' + cb.id).css( 'left', (formWidth - 50) + 'px');
+				}
                 $('#' + cb.id).css( 'position', 'absolute');
             }
 			top              = Number(top) + Number(formHeight);

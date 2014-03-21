@@ -1383,7 +1383,8 @@ function nuAutocomplete(e) {
 
 
 
-function nuLogin(){
+function nuLogin(u, p){
+
 	var w              = new nuWindow();
 	w.form_id          = 'nuindex';
 	w.call_type        = 'login';
@@ -1391,8 +1392,22 @@ function nuLogin(){
 	w.title            = nuTranslate('Home');
 	w.tip              = nuTranslate('Desktop');
 	window.nuFORM      = w;
-	w.username         = $('#u').val();
-	w.password         = $('#p').val();
+	
+	if(arguments.length == 0){
+	
+		w.username     = $('#u').val();
+		w.password     = $('#p').val();
+		$("#modal_div").remove();
+		$("#userpass").remove();
+		$("#userpass1").remove();
+		
+	}else{
+	
+		w.username     = u;
+		w.password     = p;
+		
+	}
+
 
 	var request = $.ajax({
 		url: "nuapi.php",
@@ -1402,12 +1417,17 @@ function nuLogin(){
 		}).done(function(data){
 			if(data.DATA['session_id'] == 'Login Failed'){
 				alert('Your username or password was incorrect');
+				toggleModalMode();
 				$('#p').val('');
 				$('#p').focus();
 			}else{
 				window.nuFORM.form_id = data.DATA['index_id'];
 				nuSession.setBreadCrumb(window.nuFORM);
-				toggleModalMode();
+				
+				if(arguments.length == 0){
+					toggleModalMode();
+				}
+				
 				window.nuSession.setSessionID(data.DATA['session_id']);
 				w.call_type           = 'geteditform';
                                 w.session_id          = data.DATA['session_id'];
@@ -1753,7 +1773,6 @@ function nuPollingForUpdateCall(){
 
 	if(window.nuPoll != true){return;}
 
-	setInterval(function(){var b=0;},10000);
 	var w            = new nuCopyJSObject(nuFORM);
 	w.call_type      = 'check_edit';
 
@@ -1768,13 +1787,19 @@ function nuPollingForUpdateCall(){
 			var obj  = $.parseJSON(data.DATA);
 
 			if(obj.user == ''){
-				nuPollingForUpdateCall();
+				setTimeout(function(){nuPollingForUpdateCall()},10000);
 			}else{
 				$('#nuRefreshLogo').attr('src' , 'nurefresh_red.png');
 				$('#nuRefreshLogo').attr('title' , 'Changed by ' + obj.user);
 			}
 
 	});
+
+}
+
+function nuFile(c){
+
+	return 'nufileget.php?' + c + '&t=' + new Date().getTime();
 
 }
 
