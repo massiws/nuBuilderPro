@@ -27,8 +27,8 @@ print $GLOBALS['nuSetup']->set_css;  //-- html header
 $i = "";
 $h = "";
 $t = "";
-$u = $_GET['u'];
-$p = $_GET['p'];
+$u = isset($_GET['u']) ? $_GET['u'] : '';
+$p = isset($_GET['p']) ? $_GET['p'] : '';
 
 if( array_key_exists('i', $_GET) ) {
     $i  = $_GET['i'];
@@ -57,16 +57,16 @@ window.nuPassword = '$p';
 //filepicker.setKey('$k1');
 
 $l
-    
-function nuGetID(){ 
+
+function nuGetID(){
 	return '$i';
 }
 
-function nuGetHome(){ 
+function nuGetHome(){
 	return '$h';
 }
 
-function nuGetTitle(){ 
+function nuGetTitle(){
 	return '$t';
 }
 
@@ -111,18 +111,18 @@ $(document).ready(function() {
 	window.nuSession = new nuBuilderSession();
 
 	if(i === ''){                                                            //-- Main Desktop
-	
+
 		if(window.nuUsername == '' && window.nuPassword == ''){
 			toggleModalMode();
 		}else{
 			nuLogin(window.nuUsername, window.nuPassword);
 		}
-		
+
 	}else{                                                                  //-- iFrame or new window
 		var pSession  = nuGetParentSession();
 		nuSession.setSessionID(pSession.nuSessionID);
 		var w         = document.defaultView.parent.nuSession.getWindowInfo(i,pSession);
-		
+
 //-- added by sc 2014-01-24
 
 		var alreadyDefined   = Array();
@@ -130,25 +130,25 @@ $(document).ready(function() {
 		for (var key in w){
 			alreadyDefined.push(key);
 		}
-		
+
 		for (var key in document.defaultView.parent.nuFORM){
 			if(alreadyDefined.indexOf(key) == -1){
 				w[key] = document.defaultView.parent.nuFORM[key];           //-- add values from parent values (so they can be used as hash variables)
 			}
 		}
-		
-//-- end added by sc			
-			
+
+//-- end added by sc
+
 		nuBuildForm(w);                                                     //-- Edit or Browse
-                
+
 	}
 
 });
 
 
-  
+
 </script>
 </head>
 <body onkeydown="nuKeyPressed(event, true);" onkeyup="nuKeyPressed(event, false);">
 </body>
-</html> 
+</html>
