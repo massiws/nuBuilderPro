@@ -15,7 +15,6 @@ $GLOBALS['EXTRAJS']  = '';
 nuGetFormProperties(nuV('form_id'));
 $hashData            = nuHashData();
 $GLOBALS['hashData'] = $hashData;
-//nudebug(print_r($hashData,1));
 
 //==============================================================================
 //                                  LOGIN
@@ -89,6 +88,16 @@ if (nuV('call_type') == 'runprintbrowse') {
 
 
 //==============================================================================
+//                              SAVE MOVED OBJECTS
+//==============================================================================
+if (nuV('call_type') == 'savemovedobjects') {
+
+	nuSaveMovedObjects();
+	$hashData         = nuHashData();
+    $response['DATA'] = nuGetEditForm($hashData);
+}
+
+//==============================================================================
 //                              DELETEFORM
 //==============================================================================
 if (nuV('call_type') == 'deleteform') {
@@ -103,7 +112,6 @@ if (nuV('call_type') == 'deleteform') {
 //==============================================================================
 if (nuV('call_type') == 'saveform') {
 
-    nuMoveObjects(nuV('moved_objects'));                                           //-- save any positions for rearranged Objects
     $response['ERRORS'] = nuCheckForm(nuV('form_data'));
 	
 	$nuHash             = $hashData;
@@ -327,23 +335,21 @@ function nuBuildTable($f, $p, $hashData) {
     return $i;
 }
 
-function nuMoveObjects($moves) {
+function nuSaveMovedObjects() {
 
     if (nuV('nu_user_name') != 'globeadmin') {
         return;
     }                       //-- only globeadmin can save move changes
 
-    $m = explode('|', $moves);                                    //-- split up objects
-    $f = nuV('form_id');
+    $m      = nuV('moved_objects');                                    //-- split up objects
+    $f      = nuV('form_id');
+    for ($a = 0; $a < count($m); $a++) {
 
-    for ($I = 1; $I < count($m); $I++) {
-
-        $p = explode(',', $m[$I]);                                //-- split up properties  (top, left, object ID)
-        $t = $p[0];
-        $l = $p[1];
-        $i = $p[2];
-
-        $s = "UPDATE zzzsys_object SET sob_all_top = '$t' , sob_all_left = '$l'  WHERE sob_zzzsys_form_id = '$f' AND zzzsys_object_id = '$i' ";
+		$i = $m[$a]['id'];
+		$t = $m[$a]['top'];
+		$l = $m[$a]['left'];
+		$o = $m[$a]['order'];
+        $s = "UPDATE zzzsys_object SET sob_all_column_number = '10', sob_all_order_number = '$o', sob_all_top = '$t' , sob_all_left = '$l'  WHERE sob_zzzsys_form_id = '$f' AND zzzsys_object_id = '$i' ";
 
         nuRunQuery($s);
         if (nuErrorFound()) {
@@ -451,7 +457,8 @@ function nuValidateRecord($r, $hashData) {
         return true;
     }
 
-    $bb      = nuReplaceHashes($r->sfo_custom_code_run_before_browse, $hashData);
+    $r->sfo_custom_code_run_before_browse 	= nuGetSafePHP('sfo_custom_code_run_before_browse', $recordID, $r->sfo_custom_code_run_before_browse);
+    $bb      					= nuReplaceHashes($r->sfo_custom_code_run_before_browse, $hashData);
     eval($bb);
 
     $sfo_sql = nuReplaceHashes($r->sfo_sql, $hashData);
@@ -812,11 +819,11 @@ function nuValidField($FIELD, $validFields, $formInfo, $primary_key, $ROW, $main
         if ($validFields[$i]->field_name == $fld) {                                                                                    //-- using a valid field name
             if (($validFields[$i]->no_blanks == '1' or $validFields[$i]->no_duplicates == '1' ) and $val == '') {                  //-- cannot be left blank
                 $ERR = nuGetTabAndTitle($fld, $mainForm, $parentID);
-                if ($mainForm) {                                                                                               //-- main form
-                    $ERR->message = "$ERR->title cannot be left blank..  (TAB : $ERR->tab)";
-                } else {
-                    $ERR->message = "$ERR->title in subform on row $ROW cannot be left blank..";
-                }
+				if ($mainForm) {                                                                                               //-- main form
+					$ERR->message = "$ERR->title " . nuTranslate('cannot be left blank') . "..  (" . nuTranslate('TAB') . " : $ERR->tab)";
+				} else {
+					$ERR->message = "$ERR->title " . nuTranslate('in subform') . " " . nuTranslate('on row') . " $ROW " . nuTranslate('cannot be left blank') . "..";
+				}
                 return $ERR;
             }
             if ($validFields[$i]->no_duplicates == '1') {                                                                          //-- check for duplicates
@@ -833,11 +840,11 @@ function nuValidField($FIELD, $validFields, $formInfo, $primary_key, $ROW, $main
 
                 if ($r[0] != '') {                                                                                             //-- duplicate record
                     $ERR = nuGetTabAndTitle($fld, $mainForm, $parentID);
-                    if ($mainForm) {                                                                                       //-- main form
-                        $ERR->message = "There is already a record with a $ERR->title with a value of $val..  (TAB : $ERR->tab)";
-                    } else {
-                        $ERR->message = "There is already a record with a $ERR->title with a value of $val in subform $formInfo->form_name on row $ROW..  (TAB : $ERR->tab)";
-                    }
+					if ($mainForm) {                                                                                       //-- main form
+						$ERR->message = nuTranslate('There is already a record with a') . " $ERR->title " . nuTranslate('with a value of') . " $val..  (" . nuTranslate('TAB') . " : $ERR->tab)";
+					} else {
+						$ERR->message = nuTranslate('There is already a record with a') . " $ERR->title " . nuTranslate('with a value of') . " $val " . nuTranslate('in subform') . " $formInfo->form_name " . nuTranslate('on row') . " $ROW..  (" . nuTranslate('TAB') . " : $ERR->tab)";
+					}
                     return $ERR;
                 }
             }
@@ -858,11 +865,11 @@ function nuValidField($FIELD, $validFields, $formInfo, $primary_key, $ROW, $main
                     } else {
 
                         $ERR = nuGetTabAndTitle($fld, $mainForm, $parentID);
-                        if ($mainForm) {                                                                                  //-- main form
-                            $ERR->message = "$ERR->title has an invalid date.. (TAB : $ERR->tab)";
-                        } else {
-                            $ERR->message = "$ERR->title has an invalid date in subform $formInfo->form_name on row $ROW..  (TAB : $ERR->tab)";
-                        }
+						if ($mainForm) {                                                                                  //-- main form
+							$ERR->message = "$ERR->title " . nuTranslate('has an invalid date') . ".. (" . nuTranslate('TAB') . " : $ERR->tab)";
+						} else {
+							$ERR->message = "$ERR->title " . nuTranslate('has an invalid date') . " " . nuTranslate('in subform') . " $formInfo->form_name " . nuTranslate('on row') . " $ROW..  (" . nuTranslate('TAB') . " : $ERR->tab)";
+						}
                         return $ERR;
                     }
                 }
@@ -878,11 +885,12 @@ function nuValidField($FIELD, $validFields, $formInfo, $primary_key, $ROW, $main
                     } else {
 
                         $ERR = nuGetTabAndTitle($fld, $mainForm, $parentID);
-                        if ($mainForm) {                                                                                   //-- main form
-                            $ERR->message = "$ERR->title has an invalid number..  (TAB : $ERR->tab)";
-                        } else {
-                            $ERR->message = "$ERR->title has an invalid number in subform $formInfo->form_name on row $ROW..  (TAB : $ERR->tab)";
-                        }
+
+						if ($mainForm) {                                                                                   //-- main form
+							$ERR->message = "$ERR->title " . nuTranslate('has an invalid number') . ".. (" . nuTranslate('TAB') . " : $ERR->tab)";
+						} else {
+							$ERR->message = "$ERR->title " . nuTranslate('has an invalid number') . " " . nuTranslate('in subform') . " $formInfo->form_name " . nuTranslate('on row') . " $ROW..  (" . nuTranslate('TAB') . " : $ERR->tab)";
+						}
                         return $ERR;
                     }
                 }
@@ -1155,8 +1163,9 @@ function nuGetAutocompleteData($hashData) {
         return;
     }
 
-    $f            = db_fetch_object($T);
-    $bb           = nuReplaceHashes($f->sfo_custom_code_run_before_browse, $hashData);
+    $f            				= db_fetch_object($T);
+    $f->sfo_custom_code_run_before_browse       = nuGetSafePHP('sfo_custom_code_run_before_browse', $f->zzzsys_form_id, $f->sfo_custom_code_run_before_browse);
+    $bb           				= nuReplaceHashes($f->sfo_custom_code_run_before_browse, $hashData);
     eval($bb);
 
     $searchIn     = $code;
@@ -1217,8 +1226,9 @@ function nuGetLookupData($hashData) {
         return;
     }
 
-    $f            = db_fetch_object($T);
-    $bb           = nuReplaceHashes($f->sfo_custom_code_run_before_browse, $hashData);
+    $f            				= db_fetch_object($T);
+    $f->sfo_custom_code_run_before_browse 	= nuGetSafePHP('sfo_custom_code_run_before_browse', $f->zzzsys_form_id, $f->sfo_custom_code_run_before_browse);
+    $bb           				= nuReplaceHashes($f->sfo_custom_code_run_before_browse, $hashData);
     eval($bb);
 
 	
@@ -1230,8 +1240,10 @@ function nuGetLookupData($hashData) {
     $ON           = array();                                                                        //-- Object Name
     $su           = "";
 
-	
+
+	$o->sob_lookup_php = nuGetSafePHP('sob_lookup_php', $objectID, $o->sob_lookup_php);	
 	$o->sob_lookup_php = str_replace('#RECORD_ID#', nuV('record_id'), $o->sob_lookup_php);
+
 	eval($o->sob_lookup_php);                                                                       //-- define any php functions that may be used
 	
     while ($r = db_fetch_object($t)) {
@@ -1256,7 +1268,6 @@ function nuGetLookupData($hashData) {
 	}
 
     $s              = "SELECT $id, $code, $desc $su $SQL->from $SQL->where ($searchIn = '$searchFor')";
-nuDebug($s);		
     $s              = nuReplaceHashes($s, $hashData);
     $T              = nuRunQuery($s);
     if (nuErrorFound()) {
@@ -1358,22 +1369,23 @@ function nuGetEditForm($hashData) {
 
     $beforeOpen = nuReplaceHashes(nuF('sfo_custom_code_run_before_open'), $hashData);
     eval($beforeOpen);
-    $formID               = nuV('form_id');
-    $J['nu_user_name']    = nuV('nu_user_name');
-    $J['record_id']       = nuV('record_id');
-    $J['session']         = nuV('session_id');
-    $J['form_title']      = nuF('sfo_title');
-    $nuRepositonObjects   = nuGetRepositonObjects();
-    $js                   = nuF('sfo_custom_code_run_javascript');
-    $J['form_javascript'] = $nuRepositonObjects . nuReplaceHashes($js, $hashData);
+    $formID                   = nuV('form_id');
+    $J['nu_user_name']        = nuV('nu_user_name');
+    $J['record_id']           = nuV('record_id');
+    $J['session']             = nuV('session_id');
+    $J['form_title']          = nuF('sfo_title');
+    $nuRepositonObjects       = nuGetRepositonObjects();
+	$J['draggable_objects']   = nuGetDraggableObjects();
+    $js                       = nuF('sfo_custom_code_run_javascript');
+    $J['form_javascript']     = $nuRepositonObjects . nuReplaceHashes($js, $hashData);
     nuPHPPDFBreadcrumb();
     if($GLOBALS['EXTRAJS'] != ''){
         $J['form_javascript'] = $J['form_javascript'] . "\n\n\n//-- Custom Javascript Added via the PHP function : nuAddJavascript()\n\n\n" . $GLOBALS['EXTRAJS'];
     }
 
-    $data            = nuGetObjectsForOneRecord('form', $formID, nuV('record_id'), $hashData);
-    $buttons         = nuGetEditButtons($formID, $hashData);
-    $J['buttons']    = $buttons;
+    $data                     = nuGetObjectsForOneRecord('form', $formID, nuV('record_id'), $hashData);
+    $buttons                  = nuGetEditButtons($formID, $hashData);
+    $J['buttons']             = $buttons;
 
 	if(count($data['objects']) == 1){                                           //-- fake an Object
 	
@@ -1498,6 +1510,7 @@ function nuGetRepositonObjects() {
     }
 
     $m = '';
+	$m .= "";
     while ($r = db_fetch_object($t)) {
 
         $m .= "
@@ -1506,17 +1519,62 @@ function nuGetRepositonObjects() {
     }
 
     $j = "
-	
+
 $(document).ready(function() {
 
-$m
+	window.nuDraggableObjects.forEach(function(a) {
+	
+		if(a[4] > 0 && a[5] > 0){
+		
+			nuMoveObject(a[1], a[4], a[5]);
+			
+		}
+	
+	});
 
 });
 
 ";
 
     return $j;
+	
 }
+
+
+function nuGetDraggableObjects() {
+
+    $i = nuV('form_id');
+	$o = array();
+    $s = "
+        SELECT 
+            zzzsys_object_id, 
+            sob_all_name, 
+            sob_all_type, 
+			IF(ISNULL(sob_all_top), '0', IF(sob_all_top  = '','0',sob_all_top))   AS thetop, 
+			IF(ISNULL(sob_all_left),'0', IF(sob_all_left = '','0',sob_all_left))  AS theleft, 
+			sob_all_tab_number
+        FROM zzzsys_object 
+        WHERE sob_zzzsys_form_id = ? 
+        ORDER BY
+            sob_all_tab_number, 
+            sob_all_column_number, 
+            sob_all_order_number 
+    ";
+
+    $t = nuRunQuery($s, array($i));
+	
+    if (nuErrorFound()){return $o;}
+
+    if ($t->rowCount() == 0){return $o;}
+
+    while ($r = db_fetch_object($t)){
+		$o[] = array($r->zzzsys_object_id ,$r->sob_all_name ,$r->sob_all_type, $r->sob_all_tab_number, $r->thetop, $r->theleft);
+    }
+
+    return $o;
+}
+
+
 
 function nuGetBrowseForm($hashData) {
     
@@ -2102,6 +2160,9 @@ function nuGetObjectsForOneRecord($parent, $parentID, $recordID, $hashData) {
         if ($o->sob_all_type == 'listbox') {
             $OBJ[] = nuGetObjectListbox($recordArray, $o, $recordID, $hashData);
         }
+        if ($o->sob_all_type == 'checkbox') {
+            $OBJ[] = nuGetObjectCheckbox($recordArray, $o, $recordID, $hashData);
+        }
         if ($o->sob_all_type == 'dropdown') {
             $OBJ[] = nuGetObjectDropdown($recordArray, $o, $recordID, $hashData);
         }
@@ -2381,6 +2442,21 @@ function nuGetObjectDropdown($recordArray, $o, $recordID, $hashData) {
     return $nuObject;
 }
 
+function nuGetObjectCheckbox($recordArray, $o, $recordID, $hashData) {
+
+    $nuObject = nuBaseObject($o, $recordID, $hashData);
+
+    if ($recordID == '-1' or nuUseDefault($o)) {
+        $nuObject->value = nuGetDefaultValue($o->sob_all_default_value_sql, $hashData);
+    } else {
+        if($recordArray != "" and array_key_exists($o->sob_all_name, $recordArray)) {
+            $nuObject->value = $recordArray[$o->sob_all_name];
+        }
+    }
+
+    return $nuObject;
+}
+
 function nuGetObjectText($recordArray, $o, $recordID, $hashData) {
     $nuObject = nuBaseObject($o, $recordID, $hashData);
     
@@ -2519,23 +2595,24 @@ function nuDisplayObject($o,$hashData) {
 }
 
 function nuGetDefaultValue($sql, $hashData) {
-
     if ($sql == '') {
         return '';
     }
-    $sql         = nuReplaceHashes($sql, $hashData);
+  
     $nn          = nuNextNumberTables();                             //-- tables with auto-increment for getting a next number
     
     for($i = 0 ; $i < count($nn) ; $i++){
         
         $hash    = '#' . $nn[$i] . '#';
-        
+
         if (strrpos($sql, $hash) === false){
         }else{                                                       //-- used in this sql statement
-            $sql = str_replace($hash, nuNextNumber($nn[$i]), $sql);
+            $sql = "SELECT '".str_replace($hash, nuNextNumber($nn[$i]), $sql)."'";
         }
         
     }
+	
+	$sql         = nuReplaceHashes($sql, $hashData);
 
     $t           = nuRunQuery($sql);
     if (nuErrorFound()) {
@@ -2577,8 +2654,9 @@ function nuGetLookupValues($f, $o, $recordID, $hashData, $default){
         return;
     }
 
-    $r     = db_fetch_object($t);
-    $bb    = nuReplaceHashes($r->sfo_custom_code_run_before_browse, $hashData);
+    $r     					= db_fetch_object($t);
+    $r->sfo_custom_code_run_before_browse 	= nuGetSafePHP('sfo_custom_code_run_before_browse', $r->zzzsys_form_id, $r->sfo_custom_code_run_before_browse);
+    $bb    					= nuReplaceHashes($r->sfo_custom_code_run_before_browse, $hashData);
     eval($bb);
 
 	$SQL   = new nuSqlString($r->sfo_sql);

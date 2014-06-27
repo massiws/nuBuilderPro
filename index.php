@@ -19,6 +19,7 @@ require_once('config.php');
 require_once('nucommon.php');
 
 jsinclude('nuformat.js');
+jsinclude('nucalendar.js');
 jsinclude('nucommon.js');
 jsinclude('nueditform.js');
 jsinclude('nubrowseform.js');
@@ -40,21 +41,20 @@ if( array_key_exists('title', $_SESSION) ) {
     $t  = $_SESSION['title'];
 }
 $l  = nuGetLanguage();
-
-//$k1 = $GLOBALS['nuSetup']->set_inkfilepicker_key;
-
 $de = $GLOBALS['nuSetup']->set_denied;
 
 
 print "
+
+<style>
+.nuSelected              {cursor:move;outline:2px solid red}
+</style>
 
 <script>
 
 window.nuDenied   = '$de';
 window.nuUsername = '$u';
 window.nuPassword = '$p';
-
-//filepicker.setKey('$k1');
 
 $l
 
@@ -73,15 +73,15 @@ function nuGetTitle(){
 function nuHomeWarning(){
 
 	if(nuFORM.edited == '1'){
-		return 'Leave This Form Without Saving? Doing this will return you to the login screen.';
+		return nuTranslate('Leave This Form Without Saving?')+'  '+nuTranslate('Doing this will return you to the login screen.');
 	}
-    return 'Doing this will return you to the login screen.';
+	return nuTranslate('Doing this will return you to the login screen.');
 }
 
 function nuWindowWarning(){
 
 	if(nuFORM.edited == '1'){
-		return 'Leave This Form Without Saving?';
+		return nuTranslate('Leave This Form Without Saving?');
 	}
     return null;
 }

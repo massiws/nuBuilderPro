@@ -1,4 +1,26 @@
 
+
+function nuFormatDateByString(dt, s){
+
+	var f = new nuFormatter();
+	var d = String('0'+ dt.getDate()).substr(-2);
+	var m = String(dt.getMonth()+1);
+	var y = String(dt.getFullYear());
+	
+	
+	s = s.replace('yyyy', y);
+	s = s.replace('yy', y.substr(2));
+	s = s.replace('mmm', f.mmm[m]);
+	s = s.replace('mm', f.mm[m]);
+	s = s.replace('dd', d);
+	
+	return s;
+	
+}
+
+
+
+
 function nuFormatter(){
 
 	this.mmm  = Array();
@@ -440,6 +462,14 @@ function nuBuilderSession(){
 		
 		var was                     = name+("000" + String(n  )).slice(-4);
 		var now                     = name+("000" + String(n+1)).slice(-4);
+		
+		if($('#nuCalendar').length == 0){
+			var cal                 = '';
+		}else{
+			var cal                 = window.nuCalendarCaller;
+		}
+		
+		$('#nuCalendar').remove();
 		var h                       = $('#'+pthis.id).html();
 		this.subformRowNumber[i]    = n+1;
 		var rx                      = new RegExp(was, 'g');
@@ -458,10 +488,14 @@ function nuBuilderSession(){
 		$('#' + e.id).css( 'height', this.subformRowHeight[i]+'px');
 		$('#' + e.id).css( 'position', 'absolute');
 		$('#' + e.id).html(this.subformRowHTML[i]);
-
-			$('#' + e.id + ' .ui-autocomplete-input').each(function(i){
-				nuAutocomplete(this);
-			})
+		
+		if(cal != ''){
+			nuPopupCalendar(document.getElementById(cal));
+		}
+		
+		$('#' + e.id + ' .ui-autocomplete-input').each(function(i){
+			nuAutocomplete(this);
+		})
 
 		$('#'+now+'_nuDelete').attr('checked','checked');
 	}

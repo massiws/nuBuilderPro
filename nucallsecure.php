@@ -16,7 +16,8 @@
 	$r                            = db_fetch_object($t);
 	
 	if(nuPHPAccess($r->zzzsys_php_id)){
-	
+
+		$r->slp_php 		  = nuGetSafePHP('slp_php', $r->zzzsys_php_id, $r->slp_php);
 		$e                        = nuReplaceHashes($r->slp_php, $hashData);
 		eval($e); 
 		$response['DATA']         = $nuParameters;
