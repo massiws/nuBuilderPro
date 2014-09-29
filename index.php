@@ -13,9 +13,9 @@
 <link rel="stylesheet" href="jquery/jquery-ui.css" />
 <script src="jquery/jquery-1.8.3.js" type='text/javascript'></script>
 <script src="jquery/jquery-ui.js" type='text/javascript'></script>
+<script src="ace/ace.js" type="text/javascript" charset="utf-8"></script>
 
 <?php
-require_once('config.php');
 require_once('nucommon.php');
 
 jsinclude('nuformat.js');
@@ -30,6 +30,7 @@ $h = "";
 $t = "";
 $u = isset($_GET['u']) ? $_GET['u'] : '';
 $p = isset($_GET['p']) ? $_GET['p'] : '';
+$k = isset($_GET['k']) ? $_GET['k'] : '';
 
 if( array_key_exists('i', $_GET) ) {
     $i  = $_GET['i'];
@@ -52,9 +53,10 @@ print "
 
 <script>
 
-window.nuDenied   = '$de';
-window.nuUsername = '$u';
-window.nuPassword = '$p';
+window.nuDenied     = '$de';
+window.nuUsername   = '$u';
+window.nuPassword   = '$p';
+window.nuPrimaryKey = '$k';
 
 $l
 
@@ -80,7 +82,7 @@ function nuHomeWarning(){
 
 function nuWindowWarning(){
 
-	if(nuFORM.edited == '1'){
+	if(nuFORM.edited == '1' && nuFORM.parent_form_id  != 'nurunreport' && nuFORM.parent_form_id  != 'nurunphp'){
 		return nuTranslate('Leave This Form Without Saving?');
 	}
     return null;
@@ -115,7 +117,7 @@ $(document).ready(function() {
 		if(window.nuUsername == '' && window.nuPassword == ''){
 			toggleModalMode();
 		}else{
-			nuLogin(window.nuUsername, window.nuPassword);
+			nuLogin(window.nuUsername, window.nuPassword, window.nuPrimaryKey);
 		}
 
 	}else{                                                                  //-- iFrame or new window

@@ -12,6 +12,28 @@ class nuinstall {
 	var $warnings        = array();
 	var $removeColumns   = false;
 	var $removeIndexes   = false;
+	var $overrideSetup   = false;
+	var $initResult	     = 'UNKNOWN';
+
+	function checkInstall() {
+
+		if ( $this->checkDatabaseConnection() ) {
+			if ( $this->checkDatabaseExists() ) {
+				if ( $this->checkTableExists('zzzsys_setup') ) {
+					$this->initResult = 'OK';
+					// changed *******************
+					$this->overrideSetup = false;	
+				} else {
+					$this->initResult = 'SCHEMA_INCOMPLETE';
+					$this->overrideSetup = true;
+				}
+			} else {
+				$this->initResult = 'DATABASE_NOT_CREATED';
+			}	
+		} else {
+			$this->initResult = 'CANNOT_CONNECT_TO_SERVER';
+		}
+	}
 
         function setDB($DBHost, $DBName, $DBUserID, $DBPassWord) {
                 $this->DB['DBHost']       = $DBHost;
@@ -20,9 +42,59 @@ class nuinstall {
                 $this->DB['DBPassWord']   = $DBPassWord;
         }
 
+	function checkDatabaseConnection() {
+
+                $DBHost         = $this->DB['DBHost'];
+                $DBUserID       = $this->DB['DBUserID'];
+                $DBPassWord     = $this->DB['DBPassWord'];
+                $DBName         = $this->DB['DBName'];
+
+		$con = false;
+                $con = mysql_connect($DBHost,$DBUserID,$DBPassWord);
+                if ($con === false) {
+			return false;
+                } else {
+			return true;
+		}
+        }
+
+	function checkDatabaseExists() {
+
+                $DBHost         = $this->DB['DBHost'];
+                $DBUserID       = $this->DB['DBUserID'];
+                $DBPassWord     = $this->DB['DBPassWord'];
+                $DBName         = $this->DB['DBName'];
+
+                $con = mysql_connect($DBHost,$DBUserID,$DBPassWord);
+		
+		$sdb = mysql_select_db($DBName,$con);
+
+		if ( !$sdb ) {
+			return false;
+		} else {
+			return true;
+		}	
+        }
+
+	function checkTableExists($table) {
+
+		$DBName                 = $this->DB['DBName'];
+		$dbInfo                 = $this->DB;
+		$dbInfo['DBName']       = "information_schema";
+		$sql                    = "SELECT table_name FROM tables WHERE table_schema = '$DBName' AND table_name = '$table'";
+		$rs                     = $this->runQuery($sql, $dbInfo);
+		$num                    = mysql_num_rows($rs);
+
+		if ($num != 1 ) {
+			return false;
+		} else {
+			return true;	
+		}
+	}
+
 	function importTemplate() {
 
-                $this->addDisplay("<b>Importing template tables: </b>$restore <hr>");
+                $this->addDisplay("<b>Importing template tables: </b> <hr>");
 
 		$file   = realpath(dirname(__FILE__))."/nu_template.sql";
 		$handle = fopen($file, "r");
@@ -44,6 +116,31 @@ class nuinstall {
 			die();
 		}
         }
+
+	function returnArrayResults() {
+
+		$result 	     = array('summary1'=>array(), 'summary2'=>array(), 'sqlErrors'=>array(), 'warnings'=>array() );
+
+		$this->summary1	     = $this->addDefaultToArray($this->summary1, 'No Column(s) Added');
+                $this->summary2	     = $this->addDefaultToArray($this->summary2, 'No Column(s) Changed');
+                $this->sqlErrors     = $this->addDefaultToArray($this->sqlErrors, 'No SQL errors');
+                $this->warnings      = $this->addDefaultToArray($this->warnings, 'No Warnings');
+		
+		$result['summary1']  = $this->summary1;
+        	$result['summary2']  = $this->summary2;
+        	$result['sqlErrors'] = $this->sqlErrors;
+        	$result['warnings']  = $this->warnings;
+		
+		return $result;
+	}
+
+	function addDefaultToArray($arrayToCheck, $defaultMsg) {
+
+		if ( count($arrayToCheck) == 0 ) {
+			$arrayToCheck[0] = $defaultMsg;
+		}
+		return $arrayToCheck;
+	}
 
 	function addDisplay($content) {
 		$this->display .= $content;
@@ -127,12 +224,16 @@ class nuinstall {
 
 	function deleteNubuilderInfo($template_table, $real_table) {
 
-		// delete existing nuBuilder info in zzsys tables
-                $this->addDisplay("<b>Deleting nuBuilder info from table</b><br>");
-                $id        = $real_table."_id";
-                $clean_sql = "DELETE FROM $real_table WHERE $id IN (SELECT $id FROM $template_table) ";
-                $this->addDisplay($clean_sql."<br>");
-                $this->runQuery($clean_sql, $this->DB);	
+		if ( $this->overrideSetup === false && $real_table == 'zzzsys_setup' ) {
+			$this->addDisplay("<b>Skipping Delete zzzsys_table</b><br>");
+		} else {
+			// delete existing nuBuilder info in zzsys tables
+        	        $this->addDisplay("<b>Deleting nuBuilder info from table</b><br>");
+                	$id        = $real_table."_id";
+	                $clean_sql = "DELETE FROM $real_table WHERE $id IN (SELECT $id FROM $template_table) ";
+                	$this->addDisplay($clean_sql."<br>");
+                	$this->runQuery($clean_sql, $this->DB);	
+		}
 	}
 
 	function loopColumns($template_table, $real_table) {
@@ -284,27 +385,32 @@ class nuinstall {
 		}
                 $colum_order2 = implode(", ", $colum_order);
 
-		// do insert
-                $this->addDisplay("<b>Inserting nuBuilder info into table</b><br>");
-                $insert = "INSERT INTO `$real_table` SELECT $colum_order2 FROM `$template_table` ";
-                $this->runQuery($insert, $this->DB);
-		$this->addDisplay($insert."<br>");
+		if ( $this->overrideSetup === false && $real_table == 'zzzsys_setup' ) {
+			$this->addDisplay("<b>Skipping Insert into zzzsys_table</b><br>");
+		} else {
 
-		//debug errors
-		if ( $this->lastSQLerror != "" ) {
-			$this->addDisplay("<h3>".$this->lastSQLerror."</h3>");
+			// do insert
+                	$this->addDisplay("<b>Inserting nuBuilder info into table</b><br>");
+                	$insert = "INSERT INTO `$real_table` SELECT $colum_order2 FROM `$template_table` ";
+                	$this->runQuery($insert, $this->DB);
 			$this->addDisplay($insert."<br>");
-			$this->addDisplay("<pre>");
-	                $this->addDisplay($real_table."<br>");
-        	        $this->addDisplay(count($real_table_columns)."<br>");
-                	$this->addDisplay(print_r($real_table_columns, true));
-	                $this->addDisplay($template_table."<br>");
-        	        $this->addDisplay(count($template_table_columns)."<br>");
-                	$this->addDisplay(print_r($template_table_columns,true));
-	                $this->addDisplay(count($colum_order)."<br>");
-        	        $this->addDisplay(print_r($colum_order,true));
-                	$this->addDisplay("</pre>");
-			$this->addDisplay("<hr>");
+
+			//debug errors
+			if ( $this->lastSQLerror != "" ) {
+				$this->addDisplay("<h3>".$this->lastSQLerror."</h3>");
+				$this->addDisplay($insert."<br>");
+				$this->addDisplay("<pre>");
+	                	$this->addDisplay($real_table."<br>");
+        	        	$this->addDisplay(count($real_table_columns)."<br>");
+                		$this->addDisplay(print_r($real_table_columns, true));
+	                	$this->addDisplay($template_table."<br>");
+        	        	$this->addDisplay(count($template_table_columns)."<br>");
+                		$this->addDisplay(print_r($template_table_columns,true));
+	                	$this->addDisplay(count($colum_order)."<br>");
+        	        	$this->addDisplay(print_r($colum_order,true));
+                		$this->addDisplay("</pre>");
+				$this->addDisplay("<hr>");
+			}
 		}
 		
 	}

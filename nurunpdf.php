@@ -451,7 +451,12 @@ class nuSECTION{
                     $pageBreak                = 0;
                 }
                 
-                $fit                          = floor($availableHeight / $this->O[$i]->height);            //-- rows that will fit this page
+				if($this->O[$i]->height == 0){
+					$fit                      = $availableHeight;
+				}else{
+					$fit                      = floor($availableHeight / $this->O[$i]->height);            //-- rows that will fit this page
+				}
+				
                 $o                            = pdfObject($this->O[$i]->id, $this->O[$i]->top);            //-- create Object
 				
 				if(isset($this->O[$i]->B)){$o->B = $this->O[$i]->B;$this->O[$i]->B = null;}
@@ -1035,7 +1040,7 @@ function nuAddCriteriaValues($hashData){
     foreach($hashData AS $key => $value){
     
         if(!in_array($key, $c) and !is_array($value)){
-            $v   = addslashes($value);
+            $v   = substr(addslashes($value),0,199);
             $l   = min(strlen($v), 200);
             if($l > 0){
                 $a[] = " ADD `$key` VARCHAR($l) DEFAULT '$v' ";
