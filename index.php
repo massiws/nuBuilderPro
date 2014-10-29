@@ -25,22 +25,14 @@ jsinclude('nueditform.js');
 jsinclude('nubrowseform.js');
 
 print $GLOBALS['nuSetup']->set_css;  //-- html header
-$i = "";
-$h = "";
-$t = "";
+
+$h = isset($_SESSION['home']) ? $_SESSION['home'] : '';
+$t = isset($_SESSION['title']) ? $_SESSION['title'] : '';
+$i = isset($_GET['i']) ? $_GET['i'] : '';
 $u = isset($_GET['u']) ? $_GET['u'] : '';
 $p = isset($_GET['p']) ? $_GET['p'] : '';
 $k = isset($_GET['k']) ? $_GET['k'] : '';
 
-if( array_key_exists('i', $_GET) ) {
-    $i  = $_GET['i'];
-}
-if( array_key_exists('home', $_SESSION) ) {
-    $h  = $_SESSION['home'];
-}
-if( array_key_exists('title', $_SESSION) ) {
-    $t  = $_SESSION['title'];
-}
 $l  = nuGetLanguage();
 $de = $GLOBALS['nuSetup']->set_denied;
 
