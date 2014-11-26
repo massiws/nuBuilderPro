@@ -427,7 +427,7 @@ function nuSubformColumnTitles(o,i,e,objects){
 	
 	if(o[i].deletable == 1){
 	
-		$('#' + c.id).html('Delete');
+		$('#' + c.id).html(nuTranslate('Delete'));
 		
 	}
 
